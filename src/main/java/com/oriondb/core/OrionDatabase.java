@@ -126,6 +126,20 @@ public class OrionDatabase implements AutoCloseable {
     }
     
     /**
+     * Execute a Chess Query Language (CQL) query.
+     * 
+     * Example: "player='Carlsen' AND elo > 2700 AND result='1-0'"
+     * 
+     * @param cql CQL query string
+     * @return List of matching games
+     * @throws IOException if database read fails
+     */
+    public List<Game> query(String cql) throws IOException {
+        CQLQuery cqlQuery = new CQLQuery(search());
+        return cqlQuery.query(cql);
+    }
+    
+    /**
      * Get database statistics.
      * 
      * @return Statistics string
