@@ -198,6 +198,47 @@ OrionDB is built with a layered architecture to separate concerns and allow for 
 -   **Query Layer**: Provides the fluent `SearchBuilder` API and executes queries against the indexes.
 -   **API Layer**: The public-facing `OrionDatabase` class that ties everything together.
 
+## Advanced Features
+
+### Full-Text Search with Apache Lucene
+
+OrionDB now integrates Apache Lucene for powerful full-text search on game commentary and annotations. This enables:
+
+- **Fuzzy Search**: Find terms with typos (e.g., `novelty~2`)
+- **Phrase Search**: Find exact phrases (e.g., `"theoretical novelty"`)
+- **Boolean Logic**: Combine terms with AND, OR, NOT
+- **Wildcards**: Use `*` and `?` for flexible matching
+- **Field-Specific Queries**: Search within comments or annotations (`comment:brilliant`)
+
+### Position Indexing and Search
+
+When enabled, OrionDB will now index every position in every game, allowing you to search by:
+
+- **FEN String**: Find all games that reached a specific position.
+- **Material Balance**: Query for games with a certain material advantage or disadvantage.
+- **Pawn Structure**: Search for common pawn structures like IQP, Maroczy Bind, and more.
+
+### Extended Chess Query Language (CQL)
+
+CQL has been extended to support these new features:
+
+```java
+// Find games with a specific position
+db.query("fen=\'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 2\'");
+
+// Find games with a specific pawn structure
+db.query("structure=\'IQP\'");
+
+// Find games with commentary containing "brilliant sacrifice"
+db.query("commentary CONTAINS \'brilliant sacrifice\'");
+
+// Find games with a brilliant move annotation
+db.query("annotation=\'!!\'");
+
+// Find games where the move Nf3 was played
+db.query("move=\'Nf3\'");
+```
+
 ## Future Roadmap
 
 This version of OrionDB implements the core features of Phases 0, 1, 2, and 3. Future development will focus on refining these features and expanding the ecosystem.

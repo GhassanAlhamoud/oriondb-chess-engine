@@ -37,6 +37,23 @@ public class OrionDatabase implements AutoCloseable {
      */
     public static ImportStats createFromPgn(File pgnFile, File outputFile, ProgressCallback callback) 
             throws IOException {
+        return createFromPgn(pgnFile, outputFile, callback, false, false);
+    }
+    
+    /**
+     * Create a new database from a PGN file with advanced indexing options.
+     * 
+     * @param pgnFile Input PGN file
+     * @param outputFile Output database file (.oriondb)
+     * @param callback Progress callback
+     * @param enablePositionIndexing Enable position, material, and structure indexing
+     * @param enableCommentIndexing Enable full-text comment indexing
+     * @return Statistics about the import
+     * @throws IOException if file operations fail
+     */
+    public static ImportStats createFromPgn(File pgnFile, File outputFile, ProgressCallback callback,
+                                           boolean enablePositionIndexing, boolean enableCommentIndexing) 
+            throws IOException {
         
         long startTime = System.currentTimeMillis();
         
@@ -50,7 +67,7 @@ public class OrionDatabase implements AutoCloseable {
         // Write to database
         File indexFile = new File(outputFile.getAbsolutePath() + ".idx");
         
-        try (DatabaseWriter writer = new DatabaseWriter(outputFile)) {
+        try (DatabaseWriter writer = new DatabaseWriter(outputFile, enablePositionIndexing, enableCommentIndexing)) {
             int count = 0;
             for (Game game : games) {
                 writer.writeGame(game);

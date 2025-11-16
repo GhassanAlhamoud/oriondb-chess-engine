@@ -3,6 +3,7 @@ package com.oriondb.core;
 import com.oriondb.model.Game;
 import com.oriondb.model.Move;
 import com.oriondb.index.IndexManager;
+import com.oriondb.index.IndexBuilder;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -20,12 +21,16 @@ public class DatabaseWriter implements AutoCloseable {
     private static final int VERSION = 1;
     
     private final DataOutputStream out;
-    private final IndexManager indexManager;
+    private final IndexBuilder indexBuilder;
     private int gamesWritten = 0;
     
     public DatabaseWriter(File file) throws IOException {
+        this(file, false, false);
+    }
+    
+    public DatabaseWriter(File file, boolean enablePositionIndexing, boolean enableCommentIndexing) throws IOException {
         this.out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
-        this.indexManager = new IndexManager();
+        this.indexBuilder = new IndexBuilder(enablePositionIndexing, enableCommentIndexing);
         writeHeader();
     }
     
@@ -71,8 +76,8 @@ public class DatabaseWriter implements AutoCloseable {
         out.writeInt(gameData.length);
         out.write(gameData);
         
-        // Index the game
-        indexManager.indexGame(game, offset);
+        // Index the game with all indexes
+        indexBuilder.indexGame(game, offset);
         gamesWritten++;
         
         return offset;
@@ -101,10 +106,17 @@ public class DatabaseWriter implements AutoCloseable {
     }
     
     /**
-     * Get the index manager.
+     * Get the index builder.
+     */
+    public IndexBuilder getIndexBuilder() {
+        return indexBuilder;
+    }
+    
+    /**
+     * Get the metadata index manager.
      */
     public IndexManager getIndexManager() {
-        return indexManager;
+        return indexBuilder.getMetadataIndex();
     }
     
     /**
