@@ -218,6 +218,25 @@ When enabled, OrionDB will now index every position in every game, allowing you 
 - **Material Balance**: Query for games with a certain material advantage or disadvantage.
 - **Pawn Structure**: Search for common pawn structures like IQP, Maroczy Bind, and more.
 
+### Move-Based Queries
+
+Search for games containing specific moves or move sequences.
+
+- **Single Move Search**: Find all games where a specific move was played (e.g., `move='Nf3'`).
+- **Move Sequence Search**: Find games with an exact sequence of moves (e.g., `moves CONTAINS 'e4 e5 Nf3 Nc6'`).
+- **Move Context**: Combine move searches with other filters like move number or player Elo.
+
+### Tactical Motif Detection
+
+OrionDB can automatically detect common tactical patterns in every position of every game:
+
+- **Pins**
+- **Forks**
+- **Skewers**
+- **Double Attacks**
+
+This allows for powerful tactical analysis across the entire database.
+
 ### Extended Chess Query Language (CQL)
 
 CQL has been extended to support these new features:
@@ -233,10 +252,17 @@ db.query("structure=\'IQP\'");
 db.query("commentary CONTAINS \'brilliant sacrifice\'");
 
 // Find games with a brilliant move annotation
-db.query("annotation=\'!!\'");
+db.query("annotation=\'!!\'");// Find games where Nf3 was played
+db.query("move='Nf3'");
 
-// Find games where the move Nf3 was played
-db.query("move=\'Nf3\'");
+// Find games with the Ruy Lopez opening sequence
+db.query("moves CONTAINS 'e4 e5 Nf3 Nc6 Bb5'");
+
+// Find games with knight forks
+db.query("motif='fork' AND move LIKE 'N%'");
+
+// Find high-level games with pins
+db.query("motif='pin' AND elo >= 2700");
 ```
 
 ## Future Roadmap

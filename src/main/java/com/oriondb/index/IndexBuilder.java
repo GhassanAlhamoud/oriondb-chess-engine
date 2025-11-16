@@ -3,9 +3,11 @@ package com.oriondb.index;
 import com.oriondb.chess.ChessBoard;
 import com.oriondb.chess.PawnStructureClassifier;
 import com.oriondb.chess.ZobristHasher;
+import com.oriondb.chess.TacticalMotifDetector;
 import com.oriondb.model.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builds all indexes during database import.
@@ -17,19 +19,36 @@ public class IndexBuilder {
     private final MaterialIndex materialIndex;
     private final StructureIndex structureIndex;
     private final CommentIndex commentIndex;
+    private final MoveIndex moveIndex;
+    private final MotifIndex motifIndex;
     
     private final boolean enablePositionIndexing;
     private final boolean enableCommentIndexing;
+    private final boolean enableMoveIndexing;
+    private final boolean enableMotifIndexing;
     
     public IndexBuilder(boolean enablePositionIndexing, boolean enableCommentIndexing) {
+        this(enablePositionIndexing, enableCommentIndexing, true);
+    }
+    
+    public IndexBuilder(boolean enablePositionIndexing, boolean enableCommentIndexing, boolean enableMoveIndexing) {
+        this(enablePositionIndexing, enableCommentIndexing, enableMoveIndexing, true);
+    }
+    
+    public IndexBuilder(boolean enablePositionIndexing, boolean enableCommentIndexing, 
+                       boolean enableMoveIndexing, boolean enableMotifIndexing) {
         this.metadataIndex = new IndexManager();
         this.positionIndex = enablePositionIndexing ? new PositionIndex() : null;
         this.materialIndex = enablePositionIndexing ? new MaterialIndex() : null;
         this.structureIndex = enablePositionIndexing ? new StructureIndex() : null;
         this.commentIndex = enableCommentIndexing ? new CommentIndex() : null;
+        this.moveIndex = enableMoveIndexing ? new MoveIndex() : null;
+        this.motifIndex = enableMotifIndexing ? new MotifIndex() : null;
         
         this.enablePositionIndexing = enablePositionIndexing;
         this.enableCommentIndexing = enableCommentIndexing;
+        this.enableMoveIndexing = enableMoveIndexing;
+        this.enableMotifIndexing = enableMotifIndexing;
     }
     
     /**
@@ -62,15 +81,35 @@ public class IndexBuilder {
             int plyCount = 0;
             
             // Index starting position
-            indexPosition(board.getPosition(), gameId, plyCount++);
+            Position startPos = board.getPosition();
+            indexPosition(startPos, gameId, plyCount++);
             
             // Apply each move and index resulting position
             for (Move move : game.getMoves()) {
-                if (board.applyMove(move.getSan())) {
-                    indexPosition(board.getPosition(), gameId, plyCount++);
+                String san = move.getSan();
+                if (board.applyMove(san)) {
+                    Position currentPos = board.getPosition();
+                    String fen = currentPos.toFen();
+                    
+                    // Index the position
+                    indexPosition(currentPos, gameId, plyCount);
+                    
+                    // Index the move
+                    if (moveIndex != null) {
+                        moveIndex.addMove(san, gameId, plyCount, fen);
+                    }
+                    
+                    // Detect and index tactical motifs
+                    if (motifIndex != null) {
+                        Set<TacticalMotif> motifs = TacticalMotifDetector.detectMotifs(currentPos);
+                        for (TacticalMotif motif : motifs) {
+                            motifIndex.addMotif(motif, gameId, plyCount, fen);
+                        }
+                    }
+                    
+                    plyCount++;
                 } else {
                     // Move application failed, log and continue
-                    // In production, this would be logged properly
                     break;
                 }
             }
@@ -154,6 +193,20 @@ public class IndexBuilder {
     }
     
     /**
+     * Get the move index.
+     */
+    public MoveIndex getMoveIndex() {
+        return moveIndex;
+    }
+    
+    /**
+     * Get the motif index.
+     */
+    public MotifIndex getMotifIndex() {
+        return motifIndex;
+    }
+    
+    /**
      * Get statistics about all indexes.
      */
     public String getStats() {
@@ -177,7 +230,15 @@ public class IndexBuilder {
         }
         
         if (commentIndex != null) {
-            sb.append(commentIndex.getStats()).append("\n");
+            sb.append(commentIndex.getStats()).append("\n\n");
+        }
+        
+        if (moveIndex != null) {
+            sb.append(moveIndex.getStats()).append("\n\n");
+        }
+        
+        if (motifIndex != null) {
+            sb.append(motifIndex.getStats()).append("\n");
         }
         
         return sb.toString();
